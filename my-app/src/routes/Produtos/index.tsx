@@ -1,25 +1,21 @@
 import { useEffect, useState } from "react";
 import type { TipoProduto } from "../../types/types";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import CardProduto from "../../components/CardProduto";
 import { FaEdit as Editar } from "react-icons/fa";
 import { MdDeleteForever as Excluir } from "react-icons/md";
 
-const API_URL = "https://script.google.com/macros/s/AKfycbyv9lzP5PLFeWPE-Y9GwSJQfGQHcs8UbZZHB_s9AlWKUWvRLGqsGDQMrmW8fXtQxTsx3Q/exec"
-
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Produtos() {
   // Para alterar o título da página:
   document.title = "Produtos";
-
-  const navigate = useNavigate();
 
   const [produtos, setProdutos] = useState<TipoProduto[]>([]);
 
   useEffect(() => {
     const carregaProdutos = async () => {
       try {
-        // const response = await fetch("http://localhost:3001/produtos");
         const response = await fetch(API_URL);
         if (!response.ok) {
           throw new Error(
@@ -42,28 +38,45 @@ export default function Produtos() {
     carregaProdutos();
   }, []);
 
-  //Apresente a lista de produtos em CARDS utilizando PROPS...
-
-
   const handleDelete = async (id: string) => {
     try {
 
-      const response = await fetch(`http://localhost:3001/produtos/${id}`, {
-        method: "DELETE"
-      });
+      const acao = {
+        action:"DELETE",
+        id:id
+      }
+
+      const contentHeader = {
+          "Content-Type":"text/plain;charset=utf-8"
+        }
+
+      const requObj = {
+        method:"POST",
+        headers:contentHeader,
+        body: JSON.stringify(acao)
+      }
+
+      const response = await fetch(API_URL, requObj);
 
       //ERRO
-      if (!response.ok) {
+      if (!response.ok) { 
         throw new Error(
           `Erro na exclusão do produto: ${response.status} - ${response.statusText}`,
         );
       }
 
+        const {status} = await response.json();
+        
+        if(status === "error"){
+          throw new Error(`Erro na exclusão do produto ${status}`);
+        }
+
+
       //SUCESSO
       alert("Produto exculído com sucesso!");
-      //REDIRECT
-      navigate("/");
-
+      //RECARREGANDO O ESTADO DOS PRODUTOS
+      setProdutos((prevProdutos)=>prevProdutos.filter((p)=> p.id !== id))
+     
     } catch (error) {
       console.error(error);
     }
@@ -105,7 +118,6 @@ export default function Produtos() {
                 <td>{produto.nome}</td>
                 <td>{produto.preco}</td>
                 <td>{produto.estoque}</td>
-                <td>{produto.avatar}</td>
                 <td>
                   <img src={produto.avatar} alt={produto.nome} width={40} />
                 </td>
